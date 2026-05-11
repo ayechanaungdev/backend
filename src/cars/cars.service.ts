@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCarDto } from './create-car.dto';
+import { UpdateCarDto } from './update-car.dto';
 
 @Injectable()
 export class CarsService {
@@ -26,10 +27,10 @@ export class CarsService {
   }
 
   // 4. Update a car
-  async update(id: number, data: { pricePerDay?: number; isAvailable?: boolean }) {
+  async update(id: number, updateCarDto: UpdateCarDto) {
     return this.prisma.car.update({
       where: { id },
-      data,
+      data: updateCarDto,
     });
   }
 
