@@ -1,15 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import {
+    Injectable,
+    ConflictException,
+    InternalServerErrorException
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
     constructor(private prisma: PrismaService) { }
 
-    // create a user
     async create(createUserDto: CreateUserDto) {
-        return this.prisma.user.create({
-            data: createUserDto,
-        });
+        try {
+            return await this.prisma.user.create({
+                data: createUserDto,
+            });
+        } catch (error) {
+            // P2002 is Prisma's code for "Unique constraint failed"
+            if (error.code === 'P2002') {
+                // We extract the field name from the Prisma error metadata
+                // Example: error.meta.target might be ['email']
+                const target = error.meta?.target as string[];
+                const fieldName = target ? target.join(', ') : 'field';
+
+                throw new ConflictException(`The ${fieldName} is already taken! Please use another one.`);
+            }
+
+            console.error('Database Error:', error);
+            throw new InternalServerErrorException('Something went wrong on our side.');
+        }
     }
 }
