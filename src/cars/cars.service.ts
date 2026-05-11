@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateCarDto } from './create-car.dto';
 
 @Injectable()
 export class CarsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   // 1. Create a car
-  async create(data: { brand: string; model: string; year: number; pricePerDay: number }) {
+  async create(createCarDto: CreateCarDto) {
     return this.prisma.car.create({
-      data,
+      data: createCarDto,
     });
   }
 
