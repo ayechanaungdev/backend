@@ -42,31 +42,44 @@ export class UsersService {
         }
     }
 
-    // find all users
+    // find all users (SECURITY LEAK FIXED)
     async findAll() {
-        return this.prisma.user.findMany();
+        const users = await this.prisma.user.findMany();
+        // Remove password from every user before sending
+        return users.map(user => {
+            const { password, ...userWithoutPassword } = user;
+            return userWithoutPassword;
+        });
     }
 
-    // find one user by id
+    // find one user by id (SECURITY LEAK FIXED)
     async findOne(id: number) {
-        return this.prisma.user.findUnique({ where: { id } });
+        const user = await this.prisma.user.findUnique({ where: { id } });
+        if (!user) return null; // Handle if user doesn't exist
+
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
     }
 
-    // update a user by id
+    // update a user by id (HASHING ADDED)
     async update(id: number, updateUserDto: UpdateUserDto) {
-        // We wrap this in try-catch too, in case they try to update to an existing email!
         try {
-            return await this.prisma.user.update({
+            // 1. If they are trying to update their password, we must hash the new one!
+            if (updateUserDto.password) {
+                updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+            }
+            // 2. Perform the update
+            const updatedUser = await this.prisma.user.update({
                 where: { id },
                 data: updateUserDto,
             });
+            // 3. Security: Separate the password before returning
+            const { password, ...userWithoutPassword } = updatedUser;
+            return userWithoutPassword;
         } catch (error) {
             if (error.code === 'P2002') {
-                // We extract the field name from the Prisma error metadata
-                // Example: error.meta.target might be ['email']
                 const target = error.meta?.target as string[];
                 const fieldName = target ? target.join(', ') : 'field';
-
                 throw new ConflictException(`The ${fieldName} is already taken! Please use another one.`);
             }
             console.error('Database Error:', error);
