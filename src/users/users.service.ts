@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -14,20 +15,28 @@ export class UsersService {
     // create a user
     async create(createUserDto: CreateUserDto) {
         try {
-            return await this.prisma.user.create({
-                data: createUserDto,
+            // 1. Hash the password before saving! (10 is the "salt rounds" - security level)
+            const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+            // 2. Save the user with the hashed password instead of the real one
+            const newUser = await this.prisma.user.create({
+                data: {
+                    ...createUserDto,
+                    password: hashedPassword, // 👈 Override the plain text password
+                },
             });
+            // 3. Security: Separate the password from the rest of the user data for security reasons
+            const { password, ...userWithoutPassword } = newUser;
+
+            // 4. Return the user data without the password (clean object)
+            return userWithoutPassword;
+
         } catch (error) {
-            // P2002 is Prisma's code for "Unique constraint failed"
+            // ... (Keep your existing P2002 error handling here) ...
             if (error.code === 'P2002') {
-                // We extract the field name from the Prisma error metadata
-                // Example: error.meta.target might be ['email']
                 const target = error.meta?.target as string[];
                 const fieldName = target ? target.join(', ') : 'field';
-
                 throw new ConflictException(`The ${fieldName} is already taken! Please use another one.`);
             }
-
             console.error('Database Error:', error);
             throw new InternalServerErrorException('Something went wrong on our side.');
         }
