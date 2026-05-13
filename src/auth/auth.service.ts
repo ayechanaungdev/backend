@@ -18,7 +18,8 @@ export class AuthService {
         const [accessToken, refreshToken] = await Promise.all([
             this.jwtService.signAsync(payload, {
                 secret: 'MY_SUPER_SECRET_KEY_123',
-                expiresIn: '20s', // 👈 Fast expiration for security
+                // expiresIn: '20s', // 👈 Very First Expired Token For Testing
+                expiresIn: '15m', // 👈 Real Setting
             }),
             this.jwtService.signAsync(payload, {
                 secret: 'MY_SUPER_REFRESH_KEY_123', // 👈 Different secret!
