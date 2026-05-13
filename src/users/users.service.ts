@@ -94,6 +94,25 @@ export class UsersService {
         }
     }
 
+    // update the refresh token
+    async updateRefreshToken(userId: number, refreshToken: string) {
+        // Hash it before saving, just like a password
+        const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { refreshToken: hashedRefreshToken },
+        });
+    }
+
+    // Delete the refresh token the db (for Logout)
+    async removeRefreshToken(userId: number) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { refreshToken: null },
+        });
+    }
+
     // remove a user by id
     async remove(id: number) {
         return this.prisma.user.delete({ where: { id } });
