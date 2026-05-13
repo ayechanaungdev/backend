@@ -61,6 +61,13 @@ export class UsersService {
         return userWithoutPassword;
     }
 
+    // find user by email for auth
+    async findByEmailForAuth(email: string) {
+        return this.prisma.user.findUnique({
+            where: { email }
+        });
+    }
+
     // update a user by id (HASHING ADDED)
     async update(id: number, updateUserDto: UpdateUserDto) {
         try {
